@@ -12,13 +12,19 @@ import struct
 from vehicleState   import *
 from Queue          import Queue
 from simulator      import *
+from stateControl   import stateControl
 
 
-# Vehicle State holds everything we know about the current state of the vehicle
-state           = vehicleState()
+# Vehicle State holds everything known about the current vehicle state
+vehState           = vehicleState()
 
-# TelemetryQueue is the queue to pass telemetry packets from the telemetry thread
+# TelemetryQueue is the queue to pass telemetry packets from the 
+# serial port thread
 telemetryQueue  = Queue(40)
+
+# VisionQueue is the queue to pass packets from the image processing task
+visionQueue  = Queue(40)
+
 
 # Serial port setup and support
 #serialPort = serial.Serial(port='/dev/ttyUSB', baudrate=115000)
@@ -41,7 +47,7 @@ def initializations():
     # Start the image processing task(s)
     
     # initialize robot state
-    state.currMode.mode = Modes.INITIALIZATION
+    vehState.mode.currMode = Modes.WAIT_FOR_BIST
 # end initializations   
 
 ############################################################################### 
@@ -52,10 +58,10 @@ def mainLoop():
     loopCntr    = 0
     print ("mainLoop starting loop")
     
-    while (state.currMode.mode != Modes.TERMINATE and loopCntr < 20):
+    while (vehState.mode.currMode != Modes.TERMINATE and loopCntr < 20):
 
-        state.currMode.printMode (("Loop #%2d" % (loopCntr)))
-        time.sleep (1.0)
+        vehState.mode.printMode (("MAIN_LOOP #%2d" % (loopCntr)))
+        time.sleep (2.0)
         loopCntr = loopCntr + 1
         
         # Get all the telemetry msgs and parse into state structure
@@ -65,63 +71,6 @@ def mainLoop():
         stateControl ()
         
     # end while
-# end def
-    
-#
-  
-############################################################################### 
-# stateControl - choose what to do depending on our current state
-
-def stateControl ():
-        if state.currMode.mode == Modes.NONE:
-            state.currMode.mode = Modes.INITIALIZATION
-            
-        elif state.currMode.mode == Modes.INITIALIZATION:
-            state.currMode.mode = Modes.WAIT_FOR_START   
-            
-        elif state.currMode.mode == Modes.WAIT_FOR_START:
-            state.currMode.mode = Modes.RACE_STRAIGHT      
-           
-        elif state.currMode.mode == Modes.RACE_STRAIGHT:
-            state.currMode.mode = Modes.RACE_CURVE       
-            
-        elif state.currMode.mode == Modes.RACE_CURVE:
-            state.currMode.mode = Modes.NEGOT_CROSSING 
-            
-        elif state.currMode.mode == Modes.NEGOT_CROSSING:
-            state.currMode.mode = Modes.APPR_STOPSIGN  
-                      
-        elif state.currMode.mode == Modes.APPR_STOPSIGN:
-            state.currMode.mode = Modes.NEGOT_STOPSIGN   
-            
-        elif state.currMode.mode == Modes.NEGOT_STOPSIGN:
-            state.currMode.mode = Modes.APPR_HOOP   
-            
-        elif state.currMode.mode == Modes.APPR_HOOP:
-            state.currMode.mode = Modes.NEGOT_HOOP    
-            
-        elif state.currMode.mode == Modes.NEGOT_HOOP:
-            state.currMode.mode = Modes.APPR_BARRELS     
-            
-        elif state.currMode.mode == Modes.APPR_BARRELS:
-            state.currMode.mode = Modes.NEGOT_BARRELS  
-            
-        elif state.currMode.mode == Modes.NEGOT_BARRELS:
-            state.currMode.mode = Modes.APPR_RAMP    
-            
-        elif state.currMode.mode == Modes.APPR_RAMP:
-            state.currMode.mode = Modes.NEGOT_RAMP  
-            
-        elif state.currMode.mode == Modes.NEGOT_RAMP:
-            state.currMode.mode = Modes.APPR_PED   
-            
-        elif state.currMode.mode == Modes.APPR_PED:
-            state.currMode.mode = Modes.NEGOT_PED   
-            
-        elif state.currMode.mode == Modes.NEGOT_PED:
-            state.currMode.mode = Modes.TERMINATE        
-        # endif
-
 # end def
    
 ################################################################################
@@ -187,7 +136,7 @@ def get_telemetry():
     # end while
     
     if (tlm_cnt > 0):
-        print ("GET TELEMETRY - received %d new pkts , time = " % (tlm_cnt, time))
+        print ("GET TELEMETRY - received %d new pkts , time = %d" % (tlm_cnt, time))
     else:
         print "GET TELEMETRY - no new telemetry "       
 # end    
@@ -230,21 +179,21 @@ def process_telemetry (data):
 # get_vision()
 
 def get_vision():
-    global telemetryQueue
+    global visionQueue
     
     # Get the last message put onto the queue
     new_data = False
     # Keep looping until we get the last message put onto the queue    
-    while (not telemetryQueue.empty()):
-        msg = telemetryQueue.get_nowait()
+    while (not visionQueue.empty()):
+        msg = visionQueue.get_nowait()
         new_data = True
     # end while
     
     if new_data:
-        time = parse_telemetry(msg)
-        print "GET TELEMETRY - received new telemetry, time = ", time
+        #time = parse_telemetry(msg)
+        print "GET VISION - received new telemetry, time = ", time
     else:
-        print "GET TELEMETRY - no new telemetry "       
+        print "GET VISION - no new telemetry "       
 # end    
 
 ###############################################################################

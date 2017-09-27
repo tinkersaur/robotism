@@ -9,13 +9,14 @@
 from rangeSensorPair import rangeSensorPair
 
 ############################################################################### 
-# an enumeration of the possible Modes of the vehicle
+# class Modes - an enumeration of the possible Modes of the vehicle
+###############################################################################
 class Modes(object):
 
     ###########################################################################
     # The enumerations of each mode:
     NONE            = 0     # Not defined
-    INITIALIZATION  = 1     # robot being initialized
+    WAIT_FOR_BIST   = 1     # robot being initialized
     WAIT_FOR_START  = 2     # waiting for the start signal
     
     RACE_STRAIGHT   = 3     # racing in normal Modes
@@ -123,11 +124,16 @@ class Modes(object):
             return "UNKNOWN"    
     # end toString
     
+    ###########################################################################
     def printMode(self, str):
-        print ("%s currMode = %2d - %s" % (str, self.mode , self.toString(self.mode)))
+        print ("%s currMode = %2d - %s" % (
+                            str, self.currMode , self.toString(self.currMode)))
     # end printMode
+    
 # end
- 
+
+###############################################################################
+# class iopModes - an enumeration of the modes of the IOP
 ###############################################################################
 class iopModes (object):
     NO_MODE      = -1    # No mode yet
@@ -136,6 +142,8 @@ class iopModes (object):
     ESTOP_MODE   =  2    # In emergency stop mode
 # end class    
     
+###############################################################################
+# class vehicleState - everything we know about the vehicle
 ###############################################################################
 class vehicleState (object):
 
