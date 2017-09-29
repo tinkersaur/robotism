@@ -190,7 +190,7 @@ class Grid(object):
         return False
     # end   
 
-    def setGoalDirection(angle):
+    def setGoalDirection(self, angle):
         self.goal_dir=angle
 
     # angle in radians to index of the histogram:
@@ -205,11 +205,10 @@ class Grid(object):
     def calcForceHist(self):
 
         # precalculate some constants:
-        nRows=len(grid)
-        nCols=len(grid[0])
         w0=1.0
         # maximum distance to the obstacle.
-        d_max=hypot(self.resolution*nCols/2, self.resolution*nRows)
+        d_max=hypot(self.resolution*self.nCols/2, \
+            self.resolution*self.nRows)
         dw=1.0
         da = 2*pi / self.nAngles
     
@@ -222,7 +221,7 @@ class Grid(object):
         Lmin = 5 
 
         # reset histogram.
-        for i in range(len(hist)):
+        for i in range(len(self.hist)):
             self.hist[i]=0.0
 
         # Deposit weights from the grid to the hypot
@@ -231,10 +230,10 @@ class Grid(object):
         # a -- angle of the obtacle.
         # w -- the weight of the obstacle.
         # relative to the robot.
-        for j in range(nRows):
-            for i in range(nCols):
-                rx = grid[i][j][0] - xPos
-                ry = grid[i][j][1] - yPos
+        for i in range(self.nRows):
+            for j in range(self.nCols):
+                rx = self.grid[i][j][0] - self.Xpos
+                ry = self.grid[i][j][1] - self.Ypos
 
                 a=atan2(ry,rx)
                 d=hypot(rx,ry)
