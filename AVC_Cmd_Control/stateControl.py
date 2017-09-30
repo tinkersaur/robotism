@@ -12,8 +12,8 @@ def playSound (n):
 # end
 
 
-
-from vehicleState import *  # We get vehState here
+from vehicleState   import *  # We get vehState here
+from raceModes      import raceModes
 
 # The complete vehicle state structure.  
 vehState = vehicleState()
@@ -29,8 +29,8 @@ apprSpeed   = 50            # Speed to use when approaching an obstacle
 # stateControl - choose what to do depending on our current state
 
 def stateControl ():
-    ################################################# Modes.NONE
-    if vehState.mode.currMode == Modes.NONE:
+    ################################################# raceModes.NONE
+    if vehState.mode.currMode == raceModes.NONE:
         if vehState.mode.newMode():
             playSound (0)   
             
@@ -38,14 +38,14 @@ def stateControl ():
             # We haven't received anything from IOP yet
             if (vehState.mode.modeCount >= InitMaxCnt):
                 vehState.errorString = "IOP NOT COMMUNICATING"
-                vehState.mode.setMode (Modes.ERROR) 
+                vehState.mode.setMode (raceModes.ERROR) 
             # end if           
         else:
-            vehState.mode.setMode (Modes.WAIT_FOR_BIST)  
+            vehState.mode.setMode (raceModes.WAIT_FOR_BIST)  
         # end if
         
-    ################################################# Modes.WAIT_FOR_BIST        
-    elif vehState.mode.currMode == Modes.WAIT_FOR_BIST:
+    ################################################# raceModes.WAIT_FOR_BIST        
+    elif vehState.mode.currMode == raceModes.WAIT_FOR_BIST:
         if vehState.mode.newMode():   
             playSound (1)     
          
@@ -53,137 +53,176 @@ def stateControl ():
         if (vehState.iopMode != 0x00):
             if (vehState.mode.modeCount > BistMaxCnt):
                 vehState.errorString = "IOP BIST FAILURE"
-                vehState.mode.setMode (Modes.ERROR)  
+                vehState.mode.setMode (raceModes.ERROR)  
         else:
-            vehState.mode.setMode(Modes.WAIT_FOR_START)       
+            vehState.mode.setMode(raceModes.WAIT_FOR_START)       
         # end if             
         
-    ################################################# Modes.WAIT_FOR_START       
-    elif vehState.mode.currMode == Modes.WAIT_FOR_START:
+    ################################################# raceModes.WAIT_FOR_START       
+    elif vehState.mode.currMode == raceModes.WAIT_FOR_START:
         if vehState.mode.newMode():   
             playSound (2)   
             send_command ('D', 0, 0, 0)
 
         if (vehState.iopStartSwStatus):     # We're Off!
-            vehState.mode.setMode(Modes.RACE_STRAIGHT) 
+            vehState.mode.setMode(raceModes.RACE_STRAIGHT) 
             
-    ################################################# Modes.RACE_STRAIGHT     
-    elif vehState.mode.currMode == Modes.RACE_STRAIGHT:
+    ########################################################################### 
+    # NORMAL RACE MODES
+    ###########################################################################                
+    elif vehState.mode.currMode == raceModes.RACE_STRAIGHT:
         if vehState.mode.newMode():   
             playSound (3)   
             
         if (vehState.mode.modeCount >= simMaxCnt):    
-            vehState.mode.setMode(Modes.RACE_CURVE)   
+            vehState.mode.setMode(raceModes.RACE_CURVE)   
         
-    ################################################# Modes.RACE_CURVE         
-    elif vehState.mode.currMode == Modes.RACE_CURVE:
+    #################################################         
+    elif vehState.mode.currMode == raceModes.RACE_CURVE:
         if vehState.mode.newMode():   
             playSound (4)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_CROSSING) 
+            vehState.mode.setMode(raceModes.NEGOT_CROSSING) 
         
-    ################################################# Modes.NEGOT_CROSSING         
-    elif vehState.mode.currMode == Modes.NEGOT_CROSSING:
+    #################################################         
+    elif vehState.mode.currMode == raceModes.NEGOT_CROSSING:
         if vehState.mode.newMode():   
             playSound (5)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.APPR_STOPSIGN)  
+            vehState.mode.setMode(raceModes.APPR_STOPSIGN)  
         
-    ################################################# Modes.APPR_STOPSIGN                   
-    elif vehState.mode.currMode == Modes.APPR_STOPSIGN:
+    ########################################################################### 
+    # STOPSIGN MODES
+    ###########################################################################                           
+    elif vehState.mode.currMode == raceModes.APPR_STOPSIGN:
         if vehState.mode.newMode():   
             playSound (6)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_STOPSIGN) 
+            vehState.mode.setMode(raceModes.NEGOT_STOPSIGN) 
         
-    ################################################# Modes.NEGOT_STOPSIGN         
-    elif vehState.mode.currMode == Modes.NEGOT_STOPSIGN:
+    #################################################         
+    elif vehState.mode.currMode == raceModes.NEGOT_STOPSIGN:
         if vehState.mode.newMode():   
             playSound (7)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.APPR_HOOP)   
-        
-    ################################################# Modes.APPR_HOOP        
-    elif vehState.mode.currMode == Modes.APPR_HOOP:
+            vehState.mode.setMode(raceModes.APPR_HOOP) 
+            
+    #################################################             
+    elif vehState.mode.currMode == raceModes.RECOV_STOPSIGN:
+        if vehState.mode.newMode():   
+            playSound (7)    
+
+    ########################################################################### 
+    # HOOP MODES
+    ###########################################################################                           
+    elif vehState.mode.currMode == raceModes.APPR_HOOP:
         if vehState.mode.newMode():   
             playSound (8)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_HOOP)    
+            vehState.mode.setMode(raceModes.NEGOT_HOOP)    
         
-    ################################################# Modes.NEGOT_HOOP
-    elif vehState.mode.currMode == Modes.NEGOT_HOOP:
+    #################################################
+    elif vehState.mode.currMode == raceModes.NEGOT_HOOP:
         if vehState.mode.newMode():   
             playSound (9)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.APPR_BARRELS)   
+            vehState.mode.setMode(raceModes.APPR_BARRELS)   
         
-    ################################################# Modes.APPR_BARRELS    
-    elif vehState.mode.currMode == Modes.APPR_BARRELS:
+    #################################################        
+    elif vehState.mode.currMode == raceModes.RECOV_HOOP:
+        if vehState.mode.newMode():   
+            playSound (8)
+            
+    ########################################################################### 
+    # BARREL MODES
+    ###########################################################################          
+    elif vehState.mode.currMode == raceModes.APPR_BARRELS:
         if vehState.mode.newMode():   
             playSound (10)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_BARRELS)  
+            vehState.mode.setMode(raceModes.NEGOT_BARRELS)  
         
-    ################################################# Modes.NEGOT_BARRELS    
-    elif vehState.mode.currMode == Modes.NEGOT_BARRELS:
+    #################################################    
+    elif vehState.mode.currMode == raceModes.NEGOT_BARRELS:
         if vehState.mode.newMode():   
             playSound (4)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.APPR_RAMP)    
-        
-    ################################################# Modes.APPR_RAMP    
-    elif vehState.mode.currMode == Modes.APPR_RAMP:
+            vehState.mode.setMode(raceModes.APPR_RAMP)    
+ 
+    #################################################    
+    elif vehState.mode.currMode == raceModes.RECOV_BARRELS:
+        if vehState.mode.newMode():   
+            playSound (10)  
+            
+    ########################################################################### 
+    # RAMP MODES
+    ###########################################################################     
+    elif vehState.mode.currMode == raceModes.APPR_RAMP:
         if vehState.mode.newMode():   
             playSound (11)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_RAMP)  
+            vehState.mode.setMode(raceModes.NEGOT_RAMP)  
         
-    ################################################# Modes.NEGOT_RAMP    
-    elif vehState.mode.currMode == Modes.NEGOT_RAMP:
+    #################################################    
+    elif vehState.mode.currMode == raceModes.NEGOT_RAMP:
         if vehState.mode.newMode():   
             playSound (12)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.APPR_PED)   
+            vehState.mode.setMode(raceModes.APPR_PED)   
         
-    ################################################# Modes.APPR_PED    
-    elif vehState.mode.currMode == Modes.APPR_PED:
+    #################################################    
+    elif vehState.mode.currMode == raceModes.RECOV_RAMP:
+        if vehState.mode.newMode():   
+            playSound (12)   
+            
+    ########################################################################### 
+    # PEDESTRIAN MODES
+    ###########################################################################             
+    elif vehState.mode.currMode == raceModes.APPR_PED:
         if vehState.mode.newMode():   
             playSound (13)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.NEGOT_PED)   
+            vehState.mode.setMode(raceModes.NEGOT_PED)   
         
-    ################################################# Modes.NEGOT_PED   
-    elif vehState.mode.currMode == Modes.NEGOT_PED:
+    #################################################   
+    elif vehState.mode.currMode == raceModes.NEGOT_PED:
         if vehState.mode.newMode():   
             playSound (14)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.TERMINATE)   
+            vehState.mode.setMode(raceModes.TERMINATE)
+            
+    ################################################# 
+    elif vehState.mode.currMode == raceModes.RECOV_PED:
+        if vehState.mode.newMode():   
+            playSound (13)
         
-    ################################################# Modes.ERROR
-    elif vehState.mode.currMode == Modes.ERROR:
+    ########################################################################### 
+    # ERROR MODES
+    ###########################################################################         
+    elif vehState.mode.currMode == raceModes.ERROR:
         if vehState.mode.newMode():   
             playSound (15)   
             
         if (vehState.mode.modeCount >= simMaxCnt):     
-            vehState.mode.setMode(Modes.ERROR)   
+            vehState.mode.setMode(raceModes.ERROR)   
         
-    ################################################# Modes.
+    #################################################
     else:
         playSound (16)       
         vehState.mode.errorString = "UNRECOGNIZED MODE"
-        vehState.mode.setMode(Modes.ERROR)    
+        vehState.mode.setMode(raceModes.ERROR)    
     # endif
     
 # end def

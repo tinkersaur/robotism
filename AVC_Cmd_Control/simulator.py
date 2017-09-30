@@ -10,6 +10,7 @@
 import struct
 
 from mainLoop   import *
+from raceModes  import raceModes
 
 # the internal states of the vehicle simulator
 vehTimeCntr  = 0
