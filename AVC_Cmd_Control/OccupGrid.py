@@ -391,6 +391,16 @@ class Grid(object):
 ###############################################################################
 # Test code
 ###############################################################################
+
+""" 
+We need to represent an area abut 52 feet wide (2 * 16 feet for the track and
+an additional 2 * 10 feet for the track veering off to the right/left during 
+turns).  The 16 feet track width is included twice since we always keep the car 
+centered in the X center of the grid (Xcenter,0), and then the car can be 
+either all the way to the right or all the way to left.  The height of the map
+corresponds to 16 feet high, the max range of the sensor. Since the grid cells 
+are only bins anyway we can set the resolution value fairly large.
+"""
 gridResolution  = 15    # 15 cm = ~6"/cell
 gridWidth       = 104   # 104 cells * 6"/cell = 52 feet wide
 gridHeight      = 32    # 32 cells * 6"/cell = 16 feet high
