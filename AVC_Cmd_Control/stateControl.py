@@ -29,7 +29,7 @@ apprSpeed   = 50            # Speed to use when approaching an obstacle
 # stateControl - choose what to do depending on our current state
 
 def stateControl ():
-    ################################################# raceModes.NONE
+    #################################################
     if vehState.mode.currMode == raceModes.NONE:
         if vehState.mode.newMode():
             playSound (0)   
@@ -44,7 +44,7 @@ def stateControl ():
             vehState.mode.setMode (raceModes.WAIT_FOR_BIST)  
         # end if
         
-    ################################################# raceModes.WAIT_FOR_BIST        
+    #################################################         
     elif vehState.mode.currMode == raceModes.WAIT_FOR_BIST:
         if vehState.mode.newMode():   
             playSound (1)     
@@ -58,7 +58,7 @@ def stateControl ():
             vehState.mode.setMode(raceModes.WAIT_FOR_START)       
         # end if             
         
-    ################################################# raceModes.WAIT_FOR_START       
+    #################################################        
     elif vehState.mode.currMode == raceModes.WAIT_FOR_START:
         if vehState.mode.newMode():   
             playSound (2)   

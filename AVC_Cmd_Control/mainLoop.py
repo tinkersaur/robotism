@@ -24,8 +24,8 @@ from OccupGrid       import Grid
 
 """ What we know abut the track
 """
-trWidth         = (16 * 12 * 2.54)      # Width between walls - 16 feet (cm)
-trLength        = 13116                 # Approx length of track (cm)
+trackWidth      = (16 * 12 * 2.54)      # Width between walls - 16 feet (cm)
+trackLength     = 13116                 # Approx length of track (cm)
 
 trObstacle1     = obstacle.PEDESTRIAN   # The order we will face the obstacles
 trObstacle2     = obstacle.STOPSIGN
