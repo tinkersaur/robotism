@@ -16,6 +16,7 @@ if __name__ == '__main__':
     g.enterRange (25,  10, 20, 10)  # Resulting point should be at (61.18, 43.41)       
     g.calcForceHist()
 
+    # print(g.getDescription());
     while True:
         socket.send_string(g.getDescription())
         time.sleep(0.5);

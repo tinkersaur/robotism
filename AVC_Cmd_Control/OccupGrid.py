@@ -64,6 +64,8 @@ class Grid(object):
         self.Ypos       = 0.0
         self.nAngles=nAngles
         self.clear (distance, angle)
+        self.scanAngles = []
+        self.scanDists = []
     # end
     
     ###########################################################################
@@ -112,6 +114,9 @@ class Grid(object):
         scanAngle     = angleDiff + scanAngle
         rangeXpos     = sin(radians(scanAngle)) * scanDist
         rangeYpos     = cos(radians(scanAngle)) * scanDist         
+
+        self.scanAngles.append(scanAngle)
+        self.scanDists.append(scanDist)
         
         Xpos          = rangeXpos + carXpos
         Ypos          = rangeYpos + carYpos
@@ -250,14 +255,6 @@ class Grid(object):
                 w=w0-dw*(d/d_max)
                 self.hist[k]+=w
 
-        # print "Maximum Forces: ", max(self.hist)
-        # print "Minimum Forces: ", min(self.hist)
-        # for i in range(0, len(self.hist)):
-        #     print "hist[",i,"] = ", self.hist[i]
-
-        # if True:
-        #     return
-
         # Smooth the histogram.
 
         # TODO: Do we need it??? 
@@ -278,6 +275,16 @@ class Grid(object):
             if n>=Lmin:
                 valleys.append([i,n])
                 
+        if len(valleys) == 0:
+            print "No valleys found."
+            print "Maximum Forces: ", max(self.hist)
+            print "Minimum Forces: ", min(self.hist)
+            for i in range(0, len(self.hist)):
+                print "hist[",i,"] = ", self.hist[i]
+
+            if True:
+                return
+
         # Find the best direction
 
         # First try to find a valley that contains the
@@ -333,14 +340,29 @@ class Grid(object):
                     res += "."
                 else:
                     res +="x"
-                # end if
-            # end for col
-            # res += '\n'
-        # end for row
         res +="\n"
-        res += "hist: "
+
+        res += "hist-angles: "
         for i in range(0, len(self.hist)):
-           res += "%f " % self.hist[i] 
+           res += " %f" % self.index2angle(i) 
+        res+="\n"
+
+        res += "hist-values: "
+        for i in range(0, len(self.hist)):
+           res += " %f" % self.hist[i] 
+        res+="\n"
+
+        res += "scan-angles: "
+        for i in range(0, len(self.scanAngles)):
+           res += " %f" % self.scanAngles[i] 
+        res+="\n"
+
+        res += "scan-ranges: "
+        for i in range(0, len(self.scanDists)):
+           res += " %f" % self.scanDists[i] 
+        res+="\n"
+        res+="draw: all\n"
+
         return res
     # end def
     
