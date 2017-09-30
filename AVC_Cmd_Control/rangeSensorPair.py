@@ -26,8 +26,7 @@ class rangeSensorPair(object):
     initMinDist    = 0.0   # minimum distance the sensor will work
     initMaxDist    = 0.0   # maximum distance the sensor will work
     initRightSide  = True  # True if this instantiation is for the right side
-                           # of the platform, False for left side. 
-        
+                           # of the platform, False for left side.        
     # Measured attributes
     measFrontRange = 0.0   # measured distance of front sensor
     measRearRange  = 0.0   # measure distance of rear sensor
@@ -35,8 +34,8 @@ class rangeSensorPair(object):
     # Calculated attributes
     calcDistFront  = 0.0   # distance to wall using front sensor
     calcDistRear   = 0.0   # distance to wall using rear sensor
-    calcAngFront   = 0.0   # angle of platform using front sensor
-    calcAngRear    = 0.0   # angle of platform using rear sensor  
+    calcAngFront   = 0.0   # angle between front leg and wall
+    calcAngRear    = 0.0   # angle between rear leg and wall  
     calcWallDist   = 0.0   # distance of two range points on far wall
     frontValid     = False # data from front sensor is valid
     rearValid      = False # data from rear sensor is valid

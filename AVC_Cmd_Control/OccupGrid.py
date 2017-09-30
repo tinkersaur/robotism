@@ -53,7 +53,7 @@ class Grid(object):
     # updated is always in the center and at Y = 0.0
     # 
     
-    def __init__(self, resolution=10, nCols=50, nRows=50, nAngles = 72, distance=0, angle=0):
+    def __init__(self, resolution=10, nRows=50, nCols=50, distance=0, angle=0):
         """ 
         Construct an empty occupancy grid.              
         """
@@ -62,7 +62,6 @@ class Grid(object):
         self.nRows      = nRows       
         self.Xpos       = nCols * resolution / 2
         self.Ypos       = 0.0
-        self.nAngles=nAngles
         self.clear (distance, angle)
     # end
     
@@ -73,10 +72,7 @@ class Grid(object):
     def clear (self, distance=0, angle= 0):
         self.distance   = distance
         self.angle      = angle     
-
-		# TODO: maybe avoid reallocation. Set to zero instead.
         self.grid = [[ [0.0, 0.0] for x in range(self.nCols)] for y in range(self.nRows)]    
-        self.hist=[0.0 for a in range(self.nAngles) ]
     # end    
     
     ###########################################################################
@@ -331,16 +327,6 @@ class Grid(object):
 ###############################################################################
 # Test code
 ###############################################################################
-
-""" 
-We need to represent an area abut 52 feet wide (2 * 16 feet for the track and
-an additional 2 * 10 feet for the track veering off to the right/left during 
-turns).  The 16 feet track width is included twice since we always keep the car 
-centered in the X center of the grid (Xcenter,0), and then the car can be 
-either all the way to the right or all the way to left.  The height of the map
-corresponds to 16 feet high, the max range of the sensor. Since the grid cells 
-are only bins anyway we can set the resolution value fairly large.
-"""
 gridResolution  = 15    # 15 cm = ~6"/cell
 gridWidth       = 104   # 104 cells * 6"/cell = 52 feet wide
 gridHeight      = 32    # 32 cells * 6"/cell = 16 feet high
@@ -364,9 +350,6 @@ if __name__ == '__main__':
     g.recenterGrid(20, 45)          # point should shift to (50-14.1), 20.0-14.1)
     
     g.printGrid("AFTER CLEARING AND RE-CENTERING (10,45):") 
-
-
-
 ###############################################################################
 # Attic code
 ###############################################################################           
