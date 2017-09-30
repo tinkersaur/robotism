@@ -75,11 +75,17 @@ class vehicleState (object):
     iopSpare2          = 0.0   # spare    
     iopSpare3          = 0.0   # spare 
     
-    # These are the results of the two range sensors above
+    # These are the results of the two range sensors
     leftWallAngle      = 0.0   # The angle of the vehicle (relative to left wall)
     leftWallDist       = 0.0   # The calculated distance to left wall
+    leftDataValid      = False # Data valid flag
     rightWallAngle     = 0.0   # The angle of the vehicle (relative to right wall)    
     rightWallDist      = 0.0   # The calculated distance to right wall
+    rightDataValid     = False # Data Valid flag
+    controlAngle       = 0.0   # The calculated vehicle control angle
+    controlDist        = 0.0   # The calculated vehicle dist (to the left wall)
+    compassAngle       = 0.0   # The compass angle the last time these values were
+                               # updated from good data
     
     # Desires coming out of the wall follower controller
     dsrdSpeed          = 0.0   # Desired speed of vehicle
@@ -92,6 +98,7 @@ class vehicleState (object):
     finishedPedestrian = False # Completed pedestrian
     finishedRamp       = False # Completed the ramp
     finishedHoop       = False # Completed the hoop
+    finishedBarrels    = False # 
     
     # Heartbeat going to the IOP
     currHeartBeat      = 0
