@@ -1,6 +1,13 @@
 from OccupGrid import *
+import zmq
+import time
 
 if __name__ == '__main__':
+
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
+    socket.bind("tcp://*:5556")
+
     g = Grid(resolution=10, nCols=10, nRows=9, nAngles=72, distance=0, angle=0)
     g.setGoalDirection(0)
     g.enterRange (35, -10, 0,  10)  # Resulting point should be at (43.92, 34.47)
@@ -8,7 +15,11 @@ if __name__ == '__main__':
     g.enterRange (35, -10, 20, 10)  # Resulting point should be at (43.92, 54.47)  
     g.enterRange (25,  10, 20, 10)  # Resulting point should be at (61.18, 43.41)       
     g.calcForceHist()
-    print g.getDescription()
+
+    while True:
+        socket.send_string(g.getDescription())
+        time.sleep(0.5);
+
     g.printGrid("\nAFTER POINTS ENTERED:") 
     
     g.recenterGrid(10, 0)           # All points should shift down by -10

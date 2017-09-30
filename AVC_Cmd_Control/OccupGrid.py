@@ -325,7 +325,7 @@ class Grid(object):
     ###########################################################################
     # printGrid - 
     def getDescription (self):
-        res = "size: %d %d\n" % ( self.nRows, self.nCols) 
+        res = "size: %d %d\n" % ( self.nCols, self.nRows) 
         res += "grid:"
         for row in range (self.nRows-1, -1, -1):
             for col in range (self.nCols):
