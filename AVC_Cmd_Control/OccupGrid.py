@@ -53,7 +53,7 @@ class Grid(object):
     # updated is always in the center and at Y = 0.0
     # 
     
-    def __init__(self, resolution=10, nRows=50, nCols=50, distance=0, angle=0):
+    def __init__(self, resolution=10, nCols=50, nRows=50, nAngles = 72, distance=0, angle=0):
         """ 
         Construct an empty occupancy grid.              
         """
@@ -62,6 +62,7 @@ class Grid(object):
         self.nRows      = nRows       
         self.Xpos       = nCols * resolution / 2
         self.Ypos       = 0.0
+        self.nAngles=nAngles
         self.clear (distance, angle)
     # end
     
@@ -72,7 +73,10 @@ class Grid(object):
     def clear (self, distance=0, angle= 0):
         self.distance   = distance
         self.angle      = angle     
+
+		# TODO: maybe avoid reallocation. Set to zero instead.
         self.grid = [[ [0.0, 0.0] for x in range(self.nCols)] for y in range(self.nRows)]    
+        self.hist=[0.0 for a in range(self.nAngles) ]
     # end    
     
     ###########################################################################
@@ -186,15 +190,22 @@ class Grid(object):
         return False
     # end   
 
+    ###########################################################################
+
     def setGoalDirection(self, angle):
         self.goal_dir=angle
 
+    ###########################################################################
     # angle in radians to index of the histogram:
     def angle2index(self, a):
         return int((a/pi+1)/2*self.nAngles+0.5) % self.nAngles 
 
+    ###########################################################################
+
     def index2angle(self, k):
         return ((k*1.0)/self.nAngles-0.5)*2*pi
+
+    ###########################################################################
 
     # Take the occupancy grid, and calculate
     # self.speed, and self.turn_angle
@@ -239,11 +250,13 @@ class Grid(object):
                 w=w0-dw*(d/d_max)
                 self.hist[k]+=w
 
-        print "Maximum Forces: ", max(self.hist)
-        print "Minimum Forces: ", min(self.hist)
+        # print "Maximum Forces: ", max(self.hist)
+        # print "Minimum Forces: ", min(self.hist)
+        # for i in range(0, len(self.hist)):
+        #     print "hist[",i,"] = ", self.hist[i]
 
-        if True:
-            return
+        # if True:
+        #     return
 
         # Smooth the histogram.
 
@@ -254,11 +267,12 @@ class Grid(object):
         # valley and its width.
         valleys = []
         for i in range(self.nAngles):
-            if self.hist[i]>Fmax:
+            if self.hist[i] < Fmax:
                 continue
 
             n=1
-            while self.hist[ (i+j) % self.nAngles ] > Fmax:
+            while self.hist[ (i+n) % self.nAngles ] < Fmax \
+                  and n < self.nAngles:
                 n+=1
 
             if n>=Lmin:
@@ -301,13 +315,35 @@ class Grid(object):
         # Large obstacle. The value is a total guess at this point.
         Hmax = 5
 
-        ObstacleSize = min(1.0, hist[angle2index(0)]/Hmax)
+        ObstacleSize = min(1.0, self.hist[self.angle2index(0)]/Hmax)
 
         Speed = (Vmax-Vmin)*(1.0 - ObstacleSize) + Vmin
 
         self.speed = Speed
         self.turn_angle = TurnAngle
 
+    ###########################################################################
+    # printGrid - 
+    def getDescription (self):
+        res = "size: %d %d\n" % ( self.nRows, self.nCols) 
+        res += "grid:"
+        for row in range (self.nRows-1, -1, -1):
+            for col in range (self.nCols):
+                if (self.isZero(row, col)):
+                    res += "."
+                else:
+                    res +="x"
+                # end if
+            # end for col
+            # res += '\n'
+        # end for row
+        res +="\n"
+        res += "hist: "
+        for i in range(0, len(self.hist)):
+           res += "%f " % self.hist[i] 
+        return res
+    # end def
+    
     ###########################################################################
     # printGrid - 
     def printGrid (self, str):
