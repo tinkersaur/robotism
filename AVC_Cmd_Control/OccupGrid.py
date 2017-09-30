@@ -239,6 +239,12 @@ class Grid(object):
                 w=w0-dw*(d/d_max)
                 self.hist[k]+=w
 
+        print "Maximum Forces: ", max(self.hist)
+        print "Minimum Forces: ", min(self.hist)
+
+        if True:
+            return
+
         # Smooth the histogram.
 
         # TODO: Do we need it??? 
