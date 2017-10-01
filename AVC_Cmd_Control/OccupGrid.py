@@ -219,14 +219,13 @@ class Grid(object):
         # precalculate some constants:
         w0=1.0
         # maximum distance to the obstacle.
-        d_max=hypot(self.resolution*self.nCols/2, \
+        d_max=hypot(self.resolution*self.nCols, \
             self.resolution*self.nRows)
-        dw=1.0
         da = 2*pi / self.nAngles
     
         # The treshold in the histogram for finding valleys
         # The value of 0.1 is a total guess.
-        Fmax = 0.1
+        Fmax = d_max/10
 
         # The minimal width of the valley.
         # Totally a guess at this time.
@@ -234,7 +233,7 @@ class Grid(object):
 
         # reset histogram.
         for i in range(len(self.hist)):
-            self.hist[i]=0.0
+            self.hist[i]=d_max
 
         # Deposit weights from the grid to the hypot
         # rx,ry -- the position of the obstacle
@@ -252,31 +251,35 @@ class Grid(object):
 
                 k=self.angle2index(a)
 
-                w=w0-dw*(d/d_max)
-                self.hist[k]+=w
-
-        # Smooth the histogram.
-
-        # TODO: Do we need it??? 
+                if (self.hist[k]>d):
+                    self.hist[k]=d
 
         # Find the valleys
         # This array contains the array of the start of the
         # valley and its width.
         valleys = []
-        for i in range(self.nAngles):
+        i=0
+        while i<self.nAngles:
             if self.hist[i] < Fmax:
+                #print "Obstacle is too close: ", self.hist[i]
+                i+=1
                 continue
 
             n=1
-            while self.hist[ (i+n) % self.nAngles ] < Fmax \
+            while self.hist[ (i+n) % self.nAngles ] > Fmax \
                   and n < self.nAngles:
                 n+=1
 
+            # print "found valley: [",i,", ",n,"]"
             if n>=Lmin:
                 valleys.append([i,n])
-                
+
+            i+=n
+
         if len(valleys) == 0:
             print "No valleys found."
+            print "          Fmax: ", Fmax
+            print "          Lmin: ", Lmin
             print "Maximum Forces: ", max(self.hist)
             print "Minimum Forces: ", min(self.hist)
             for i in range(0, len(self.hist)):
@@ -344,7 +347,7 @@ class Grid(object):
 
         res += "hist-angles: "
         for i in range(0, len(self.hist)):
-           res += " %f" % self.index2angle(i) 
+           res += " %f" % (self.index2angle(i) /pi*180)
         res+="\n"
 
         res += "hist-values: "
