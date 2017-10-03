@@ -71,7 +71,7 @@ class vehicleState (object):
     iopAccelVert       = 0.0   # Value of the vertical accelerometer
     iopGyroHoriz       = 0.0   # Gyro value in horizontal plane
     iopCompassAngle    = 0.0   # Compass angle
-    iopSpare1          = 0.0   # spare
+    iopCameraAngle     = 0.0   # Vertical angle of the camera
     iopSpare2          = 0.0   # spare    
     iopSpare3          = 0.0   # spare 
     

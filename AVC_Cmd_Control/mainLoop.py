@@ -1,6 +1,5 @@
 """
- mainLoop.py 
-
+ mainLoop.py - The main loop of the racing vehicle.
  
  Written by David Gutow 8/2017
 """
@@ -10,76 +9,19 @@ import threading
 import struct
 from Queue           import Queue
 
-from simulator       import *
+from simulator       import *       # Only for the simulator
 
-from vehicleState    import *
-from stateControl    import stateControl
+from vehicleState    import *       # Everything we know about the vehicle
+from constants       import *       # Vehicle and course constants
+from stateMachine    import stateMachine
 from rangeSensorPair import rangeSensorPair
 from raceModes       import raceModes
 from rangeClass      import Range
 from OccupGrid       import Grid
+from serialClass     import serialClass
+
 
 ###############################################################################
-# Constants used throughout the code
-
-""" What we know abut the track
-"""
-trackWidth      = (16 * 12 * 2.54)      # Width between walls - 16 feet (cm)
-trackLength     = 13116                 # Approx length of track (cm)
-
-trObstacle1     = obstacle.PEDESTRIAN   # The order we will face the obstacles
-trObstacle2     = obstacle.STOPSIGN
-trObstacle3     = obstacle.BARRELS
-trObstacle4     = obstacle.HOOP
-trObstacle5     = obstacle.RAMP 
-
-""" Occupancy Grid constants:  We need to represent an area at least 52 feet wide 
-(2 * 16 feet for the track and an additional 2 * 10 feet for the track veering
-off to the right/left during turns).  The 16 feet track width is included twice 
-since we always keep the car centered in the X center of the grid (Xcenter,0), 
-and then the car can be either all the way to the right or all the way to left.  
-The height of the map corresponds to 16 feet high, the max range of the sensor. 
-Since the grid cells are only bins we can set the resolution value fairly large.
-"""
-ogResolution    = 15    # Size of each cell in the occupancy grid (cm)
-ogNcols         = 104   # At 15 cm (6") this corresponds to 52 feet wide
-ogNrows         = 32    # At 15 cm cells this is 16 feet (the range of the sensors)
-ogStartDist     = 0.0   # Initial cumulative distance when system intitialized
-ogStartAngle    = 0.0   # Initial angle of the vehicle when system initialized
-
-""" Steering control constants:
-"""
-
-
-
-""" The two rangeSensorPair constants:  
-Note - all angles are the angle of the sensors from a line perpindicular  
-to the vehicle sides.
-"""
-rsLeftFrontAng  = 30    # The angle of the left front sensor (deg)
-rsLeftRearAng   = 5     # The angle of the left rear sensor (deg)
-rsRightFrontAng = 30    # The anlge of the right front sensor (deg)
-rsRightRearAng  = 5     # The angle of the right rear sensor (deg)
-rsMinDistance   = 100   # The min distance accepted (cm)
-rsMaxDistance   = 500   # The max distance accepted (cm)
-rsLeftSide      = False # Used to distinguish the left side sensor pair
-rsRigthSide     = True  # Used to distinguish the left side sensor pair
-rsFRspacing     = 20    # The spacing between the front and rear sensors (cm)
-rsLRspacing     = 15    # The spacing between the left and right sensor pairs
-
-""" The various speed values:  
-"""
-speedMax        = 100   # Maximum speed we'll ever go
-speedApproach   = 50    # The speed we'll approach obstacle with
-speedHoop       = 50    # The speed we'll negotiate the hoop obstacle
-speedRamp       = 60    # The speed we'll jump the ramp
-speedPed        = 40    # The speed we'll negotiate the pedestrian
-speedBarrels    = 30    # The speed we'll negotiate the barrels
-speedMin        = 20    # The minimum speed (except zero) we'll ever go
-speedZero       = 0     # Stopped
-
-###############################################################################
-
 # Vehicle State holds everything known about the current vehicle state
 vehState        = vehicleState()
 
@@ -108,20 +50,17 @@ telemetryQueue  = Queue(40)
 visionQueue     = Queue(40)
 
 # Serial port setup and support
-#serialPort = serial.Serial(port='/dev/ttyUSB', baudrate=115000)
-serialPortFlag  = True      # Use to kill the serial port thread
+serialPort  = serialClass (telemetryQueue)
 
 ############################################################################### 
 # Initialize the entire system
 ###############################################################################
 
 def initializations():
+    # Create the 
     # Create the telemetry queue
     
-    # start the telemetry thread and give it some time to start up
-    t = threading.Thread(group=None, target=serialPortThread, name = "serialPortThread" )
-    t.start()
-    time.sleep (0.2)   
+ 
     
     # Create the image procesing queues (to/from)
     
@@ -129,6 +68,11 @@ def initializations():
     
     # initialize robot state
     vehState.mode.currMode = raceModes.WAIT_FOR_BIST
+    
+    # Create the vehicle simulator
+    startVehSimulator()
+    time.sleep(2) 
+    
 # end initializations   
 
 ############################################################################## 
@@ -140,73 +84,32 @@ def mainLoop():
     loopCntr    = 0
     print ("mainLoop starting loop")
     
-    while (vehState.mode.currMode != raceModes.TERMINATE and loopCntr < 20):
-
-        vehState.mode.printMode (("MAIN_LOOP #%2d" % (loopCntr)))
-        time.sleep (2.0)
-        loopCntr = loopCntr + 1
-        
+    while (vehState.mode.currMode != raceModes.TERMINATE and loopCntr < 50):   
         # Get all the telemetry msgs and parse into state structure
         get_telemetry()
         get_vision()
+        
         # Now do all the state specific actions
-        stateControl ()
+        stateMachine (vehState, serialPort)
         
         # Let the iop know we're alive
-        send_command(ord ('H'), currHeartBeat, 0, 0)
+        serialPort.sendCommand ('H', vehState.currHeartBeat, 0, 0)
         vehState.currHeartBeat += 1
         
+        # Send the vehicle state every once in a while
+        # sendStatus(loopCntr)
         
+        time.sleep (0.5)
+        loopCntr = loopCntr + 1         
+        if loopCntr % 4 == 0:
+            vehState.mode.printMode (("MAIN_LOOP #%2d" % (loopCntr)))        
     # end while
+    
+    # Kill the simulator by sending an unknown command
+    serialPort.sendCommand ('Z', 0, 0, 0)    
 # end def
-   
-###############################################################################
-# Serial Port support routines:    
-###############################################################################
-# SerialPortThread(state)
+      
 
-def serialPortThread():
-    #serialPort = serial.Serial(port='/dev/ttyUSB', baudrate=115000)
-    print ("serialPortThread starting loop")   
-    cnt = 0
-    
-    while (serialPortFlag and cnt < 30):
-        """
-        data = serialPort.read(48)    # length of a telemetry message
-        telemetryQueue.put(data)
-        """
-        
-        # instead of getting data from serial port we'll call the simulator
-        time.sleep (0.7)                # DAG turn off when we get real port        
-        data = vehSimulator()  
-        telemetryQueue.put(data)
-        
-        cnt += 1
-    # end while
-    print ("serialPortThread terminating")   
-#end def
-   
-###############################################################################
-# send_command(command, param1, param2, param3)   
-###############################################################################
-
-def send_command(commandChar, param1, param2, param3):
-    # pack the command into a struct
-    packedArray  = struct.pack('>hhhh', ord(command), param1, param2, param3)
-    
-    # send it along
-    """
-    nbytes = serialPort.write(packedArray)    # length of a telemetry message    
-    if nbytes != 8:
-        flag an error
-    # end
-    
-    """
-    if not serialPortNewCmd:
-        serialPortCmd = packedArray
-        serialPortNewCmd = True
-    # end   
-#end
     
 ################################################################################
 # get_telemetry(state)
@@ -235,6 +138,8 @@ def get_telemetry():
 ################################################################################
 
 def process_telemetry (data):
+        #global vehState
+        
         # print "PARSE: Length of data is ", len(data)
         telemArray  = struct.unpack('>Lhhhhhhhhhhhhhhhhhhhhhh', data)
         
@@ -264,10 +169,13 @@ def process_telemetry (data):
         vehState.iopAccelVert   = telemArray[17]
         vehState.iopGyroHoriz   = telemArray[18]
         vehState.iopCompAngle   = telemArray[19]
-        vehState.iopSpare1      = telemArray[20]        
+        vehState.iopCameraAngle = telemArray[20]        
         vehState.iopSpare2      = telemArray[21]
         vehState.iopSpare3      = telemArray[22]   
         
+        # print "PROCESS_TELEM - Time %5d, Mode %1d, AccCnt %2d, Switch %2d/%2d" % (
+            # vehState.iopTime, vehState.iopMode, vehState.iopAcceptCnt, 
+            # vehState.iopSwitchStatus, vehState.iopStartSwitch)      
         #######################################################################
         # Let's make sure we're always operating on compass angles which range
         # -180 to +180, rather than 0 to 360 degrees.
@@ -318,7 +226,7 @@ def get_vision():
         #time = parse_telemetry(msg)
         print "GET VISION - received new telemetry, time = ", time
     else:
-        print "GET VISION - no new telemetry "       
+        pass #print "GET VISION - no new telemetry "       
 # end    
 
 ###############################################################################
@@ -328,6 +236,6 @@ if __name__ == "__main__":
     ##### TEST # 1 
     initializations()
     mainLoop()
-    serialPortFlag = False
+    serialPort.killThread()
     
 # end    

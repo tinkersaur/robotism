@@ -1,4 +1,7 @@
-"""
+############################################################################### 
+# stateControl - choose what to do depending on our current state
+
+def stateControl ():
         if state.currMode.mode == Modes.NONE:
             state.currMode.mode = Modes.INITIALIZATION
             
@@ -46,9 +49,9 @@
             
         elif state.currMode.mode == Modes.NEGOT_PED:
             state.currMode.mode = Modes.TERMINATE        
-            
         # endif
-        """
+
+# end def
 
 
         

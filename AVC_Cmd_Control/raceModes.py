@@ -58,9 +58,9 @@ class raceModes(object):
     # setMode - Sets a new mode
     #   
     def setMode(self, mode):
-        self.prevMode = self.currMode
-        self.currMode = mode
-        modeCount     = 0
+        self.prevMode   = self.currMode
+        self.currMode   = mode
+        self.modeCount  = 0
     # end
         
         
@@ -71,7 +71,7 @@ class raceModes(object):
     def newMode(self):
         self.modeCount += 1      # First time around it'll be equal to '1'
         if self.modeCount <= 1:
-            return True     # We are in a new mode
+            return True          # We are in a new mode
         # end
         return False
     # end
