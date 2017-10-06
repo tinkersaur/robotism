@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 """ Simple occupancy-grid-based mapping. 
 
 Author: David Gutow
@@ -86,6 +86,20 @@ class FineGrid(object):
         self.carWidth = width
         self.carLength = length
 
+    def setGoodRange(self, val):
+        """ If a distance to an obstacle is this far
+            than the robot can maneuver in front of it easily.
+            This is also the treshold in the histogram for
+            finding valleys.
+        """
+        self.goodRange = val
+
+    def setMaxSpeed(self, val):
+        self.maxSpeed = val
+
+    def setMinSpeed(self, val):
+        self.minSpeed = val
+
     def reset(self):
         self.distance   = 0.0
         self.angle      = 0.0     
@@ -157,7 +171,7 @@ class FineGrid(object):
         mx=-ky/d
         my= kx/d
        
-        rw=tan(radians(self.rayWidth))*d
+        rw=tan(radians(self.rayWidth/2))*d
 
         #Figure out the number of steps:
         #h=int(ceil(5*max(fabs(kx/self.dx), fabs(ky/self.dy))))
@@ -285,10 +299,6 @@ class FineGrid(object):
             self.dy*self.nRows)
         da = 2*pi / self.nAngles
     
-        # The treshold in the histogram for finding valleys
-        # The value of 0.1 is a total guess.
-        Fmax = d_max/10
-
         # The minimal width of the valley.
         # Totally a guess at this time.
         Lmin = 5 
@@ -336,13 +346,13 @@ class FineGrid(object):
         valleys = []
         i=0
         while i<self.nAngles:
-            if self.hist[i] < Fmax:
+            if self.hist[i] < self.goodRange:
                 #print "Obstacle is too close: ", self.hist[i]
                 i+=1
                 continue
 
             n=1
-            while self.hist[ (i+n) % self.nAngles ] > Fmax \
+            while self.hist[ (i+n) % self.nAngles ] > self.goodRange \
                   and n < self.nAngles:
                 n+=1
 
@@ -354,7 +364,7 @@ class FineGrid(object):
 
         if len(valleys) == 0:
             print "No valleys found."
-            print "          Fmax: ", Fmax
+            print "     goodRange: ", self.goodRange
             print "          Lmin: ", Lmin
             print "Maximum Forces: ", max(self.hist)
             print "Minimum Forces: ", min(self.hist)
@@ -395,18 +405,13 @@ class FineGrid(object):
                 elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
                      TurnAngle = edge
 
-        Vmax=1.0
-        Vmin=0.1
 
-        # Large obstacle. The value is a total guess at this point.
-        Hmax = 5
-
-        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/Hmax
+        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/self.goodRange
         ObstacleSize = min(1.0, ObstacleSize) 
 
-        Speed = (Vmax-Vmin)*(1.0 - ObstacleSize) + Vmin
+        self.speed = (self.maxSpeed-self.minSpeed)* \
+                (1.0 - ObstacleSize) + self.minSpeed
 
-        self.speed = Speed
         self.turnAngle = TurnAngle
 
     ###########################################################################
