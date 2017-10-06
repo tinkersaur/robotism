@@ -53,7 +53,7 @@ class Grid(object):
     # updated is always in the center and at Y = 0.0
     # 
     
-    def __init__(self, resolution=10, nCols=50, nRows=50, nAngles = 72, distance=0, angle=0):
+    def __init__(self, resolution=10, nRows=50, nCols=50, distance=0, angle=0):
         """ 
         Construct an empty occupancy grid.              
         """
@@ -62,10 +62,7 @@ class Grid(object):
         self.nRows      = nRows       
         self.Xpos       = nCols * resolution / 2
         self.Ypos       = 0.0
-        self.nAngles=nAngles
         self.clear (distance, angle)
-        self.scanAngles = []
-        self.scanDists = []
     # end
     
     ###########################################################################
@@ -75,10 +72,7 @@ class Grid(object):
     def clear (self, distance=0, angle= 0):
         self.distance   = distance
         self.angle      = angle     
-
-		# TODO: maybe avoid reallocation. Set to zero instead.
         self.grid = [[ [0.0, 0.0] for x in range(self.nCols)] for y in range(self.nRows)]    
-        self.hist=[0.0 for a in range(self.nAngles) ]
     # end    
     
     ###########################################################################
@@ -114,9 +108,6 @@ class Grid(object):
         scanAngle     = angleDiff + scanAngle
         rangeXpos     = sin(radians(scanAngle)) * scanDist
         rangeYpos     = cos(radians(scanAngle)) * scanDist         
-
-        self.scanAngles.append(scanAngle)
-        self.scanDists.append(scanDist)
         
         Xpos          = rangeXpos + carXpos
         Ypos          = rangeYpos + carYpos
@@ -182,7 +173,7 @@ class Grid(object):
     def getValue (self, xIndex, yIndex):
         return self.grid[xIndex][yIndex]
     # end
-
+    
     ###########################################################################
     # isZero - checks if a map cell contains no data, taking into account 
     # floating point roundoff
@@ -194,6 +185,8 @@ class Grid(object):
             return True
         return False
     # end   
+
+    ###########################################################################
     # printGrid - 
     def printGrid (self, str):
         print (str)
@@ -218,16 +211,6 @@ class Grid(object):
 ###############################################################################
 # Test code
 ###############################################################################
-
-""" 
-We need to represent an area abut 52 feet wide (2 * 16 feet for the track and
-an additional 2 * 10 feet for the track veering off to the right/left during 
-turns).  The 16 feet track width is included twice since we always keep the car 
-centered in the X center of the grid (Xcenter,0), and then the car can be 
-either all the way to the right or all the way to left.  The height of the map
-corresponds to 16 feet high, the max range of the sensor. Since the grid cells 
-are only bins anyway we can set the resolution value fairly large.
-"""
 gridResolution  = 15    # 15 cm = ~6"/cell
 gridWidth       = 104   # 104 cells * 6"/cell = 52 feet wide
 gridHeight      = 32    # 32 cells * 6"/cell = 16 feet high
