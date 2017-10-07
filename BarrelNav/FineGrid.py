@@ -47,6 +47,11 @@ class FineGrid(object):
         (x0,y0,dx,dy) -- the coeficients used to tranfrom the
                          grid point into real world
 
+        Note that scanAngles and histAngles which are stored in the array
+            are absolute and independent of the car rotation.
+            Although when enterScan is used, the angle is
+            relative. 
+
     """
     
     ###########################################################################
@@ -113,6 +118,10 @@ class FineGrid(object):
         self.scanAngles = []
         self.scanDists = []
 
+    def setCarPos(self, x, y):
+        self.carX = x
+        self.carY = y
+
     def setCarAngle(self, val):
         self.carA = val
 
@@ -163,12 +172,15 @@ class FineGrid(object):
                 return
 
     def enterScan(self, angle, dist):
+
+        angle+=self.carA
+
         self.scanAngles.append(angle)
         self.scanDists.append(dist)
         # We assume that the car is always on the grid.
 
-        kx=cos(radians(self.carA + angle))*dist
-        ky=sin(radians(self.carA + angle))*dist
+        kx=cos(radians(angle))*dist
+        ky=sin(radians(angle))*dist
        
         d=hypot(kx,ky)
         mx=-ky/d
@@ -202,59 +214,27 @@ class FineGrid(object):
         self.setLineVal(x,y, x-rw*mx, y-rw*my, 1.0)  
  
     
-    ###########################################################################
-    # enterPoint - enters an objects position into the grid  
-    
-    def enterPoint(self, x, y):
-        col = int (x / self.resolution)
-        row = int (y / self.resolution)
-        
-        # Throw the point out if out of range
-        if (col < 0 or col >= self.nCols):
-            return
-        if (row < 0 or row >= self.nRows):
-            return
-        
-        # Replace any current value on the assumption that this value is more
-        # accurate
-        self.grid[row][col] = [x, y]
-        #print ("Grid pos (%6.2f, %6.2f) - Point (%6.2f, %6.2f) entered at row/col %2d/%2d" % 
-        #   (self.carX, self.carY, x,y,row,col))
-    # end
+    def scroll(self, di, dj):
+        old = self.grid
+        self.grid = [ [ 0.0 for j in range(0, self.nCols) ] for i in range(0, self.nRows) ]
+        for i in range(0, self.nRows):
+            for j in range(0, self.nCols):
+                i1 = i-di
+                j1 = j-dj
+                if 0<=i1 and i1<self.nRows and \
+                    0<=j1 and j1<self.nCols:
+                    self.grid[i][j] = old[i1][j1]
+                else:
+                    self.grid[i][j] = 0.5
+        self.x0 += dj * self.dx
+        self.y0 += di * self.dy
+            
 
-    ###########################################################################
-    # recenterGrid - translates and rotates the map to the new distance 
-    # and angle.  NOTE - rather than creating a second grid and transferring
-    # all the rotated/translated points to it, we do it within the same grid.
-    # CAUTION though, this method only works if we are going forward, e.g.
-    # moving the data in the grid generally downward.
-    
-    def recenterGrid(self, dist, angle):
-        # Calculate the delta X,Y that all points will be moved by
-        deltaAngle = angle - self.angle
-        deltaDist  = dist  - self.distance
-        deltaY     = deltaDist * cos(radians(deltaAngle))       
-        deltaX     = deltaDist * sin(radians(deltaAngle))
-        #print ("Recenter - Input dist-%4.1f angle-%4.1f,  Delta X/Y %4.1f/%4.1f\n" % 
-        #   (dist, angle, deltaX, deltaY)),
-        
-        for row in range(self.nRows):
-            for col in range(self.nCols):
-                if (not self.isZero(row, col)):
-                    [x,y] = self.grid[row][col]
-                    x = x - deltaX
-                    y = y - deltaY
-                    # we must zero out this cell first in case the new position
-                    # turns out to be in the same cell
-                    self.grid[row][col] = [0.0, 0.0]   
-                    self.enterPoint(x,y)
-                # end
-            # end col
-        # end row
-        self.angle    = angle
-        self.distance = dist
-        pass
-    # end
+    def recenter(self):
+        dj = int(round(self.carX / self.dx))
+        di = int(round( self.carY / self.dy))
+        if fabs(dj)>=2 or fabs(dy)>=2:
+            self.scroll(di, dj)
     
     ###########################################################################
     # getValue   
@@ -262,18 +242,6 @@ class FineGrid(object):
         return self.grid[xIndex][yIndex]
     # end
     
-    ###########################################################################
-    # isZero - checks if a map cell contains no data, taking into account 
-    # floating point roundoff
-    def isZero (self, xIndex, yIndex):
-        point = self.grid[xIndex][yIndex]
-        x = point[0]
-        y = point[1]
-        if (x > -0.001 and x < 0.001 and y > -0.001 and y < 0.001):
-            return True
-        return False
-    # end   
-
     ###########################################################################
 
     def setGoalDirection(self, angle):
