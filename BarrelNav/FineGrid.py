@@ -14,32 +14,20 @@ from math import *
 class FineGrid(object):
     """ 
     The Grid class stores an occupancy grid as a two dimensional array.
-    Each cell in the grid can be thought of as a bin holding a position 
-    of an obstacle as detected by the sensor.  Each cell only holds one 
-    position; if another obstacle is detected in the same cell (in 
-    same vicinity) it is assumed to be the same obstacle.  The newer
-    position replaces the older one, on the assumption that the vehicle
-    is closer to the obstacle and thus the measurement is more accurate.
-    
-    (Possible future enhancement - look at the 8 surrounding cells to 
-    see if there is an entry within a set distance say 'dx' and
-    if so, assume that is the original for the current point)
+    Each cell in the grid can be thought of as a bin holding a
+    probability to find an obstacle at a position.
     
     The origin (0,0) of the grid is considered to be the lower left
     corner with 'x' increasing to the right (increasing column index)
     and 'y' increasing going up (increasing row index).
-    
-    The distance and angle variables
-    are the vehicle cumulative distance and angle which correspond to the
-    current grid. Angle is assumed to be an absolute angle in world 
+   
+    Angles a stored in degrees, and distances are stored in cm.
+    Angle is assumed to be an absolute angle in world 
     reference frame, something like we might obtain from a compass. 
     
     Public instance variables:
         nCols      --  Number of columns in the occupancy grid.
         nRows      --  Number of rows in the occupancy grid.
-        distance   --  The distance (position) this grid is referenced from
-                       (The cumulative distance the car has travelled)
-        angle      --  The angle this grid is referenced from
         grid       --  integer array with nRows rows and nCols columns.
         (carX,carY) --  The position of the car which the map is relative to 
         carA        -- the direction of the car
@@ -47,10 +35,9 @@ class FineGrid(object):
         (x0,y0,dx,dy) -- the coeficients used to tranfrom the
                          grid point into real world
 
-        Note that scanAngles and histAngles which are stored in the array
-            are absolute and independent of the car rotation.
-            Although when enterScan is used, the angle is
-            relative. 
+    Note that scanAngles and histAngles which are stored in the
+    array are absolute and independent of the car rotation.
+    Although when enterScan is used, the angle is relative. 
 
     """
     
@@ -72,6 +59,8 @@ class FineGrid(object):
         self.turnAngle = 0
         self.speed = 0
         self.goal_dir = 0
+        self.valleys = []
+        self.minValleyAngle = 25
 
     def setGridSize(self, nCols=50, nRows=50):
         self.nCols      = nCols 
@@ -90,6 +79,9 @@ class FineGrid(object):
     def setCarSize(self, width, length):
         self.carWidth = width
         self.carLength = length
+
+    def setMinValleyAngle(self, val):
+        self.minValleyAngle = val
 
     def setGoodRange(self, val):
         """ If a distance to an obstacle is this far
@@ -271,11 +263,9 @@ class FineGrid(object):
         # maximum distance to the obstacle.
         d_max=hypot(self.dx*self.nCols, \
             self.dy*self.nRows)
-        da = 2*pi / self.nAngles
     
         # The minimal width of the valley.
-        # Totally a guess at this time.
-        Lmin = 5 
+        Lmin = int(ceil(self.minValleyAngle/(360.0/self.nAngles)))
 
         # reset histogram.
         for i in range(len(self.hist)):
@@ -349,6 +339,47 @@ class FineGrid(object):
                 return
 
     def chooseVelocity(self):
+        # Find the best direction
+
+        # First try to find a valley that contains the
+        # goal direction. If there is such a valley,
+        # then go in the middle of it.
+
+        found = False
+        k = (self.goal_dir/pi+1)/2*self.nAngles
+        for v in self.valleys:
+            if k>=v[0] and k<=v[0]+v[1]-1:
+                found = True
+                TurnAngle = self.index2angle(v[0] + v[1]/2.0)
+                break
+
+        # If there is no valley that contains the goal direction,
+        # then try to find a valley that has an edge that would
+        # be the closest match.
+
+        TurnAngle = 0.0
+        if not found:
+            for v in self.valleys:
+                edge = self.index2angle(v[0]) 
+                if not found :
+                    TurnAngle = edge
+                    found = True
+                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
+                    TurnAngle = edge
+                    edge = self.index2angle(v[0]+v[1]) 
+                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
+                     TurnAngle = edge
+
+
+        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/self.goodRange
+        ObstacleSize = min(1.0, ObstacleSize) 
+
+        self.speed = (self.maxSpeed-self.minSpeed)* \
+                (1.0 - ObstacleSize) + self.minSpeed
+
+        self.turnAngle = TurnAngle
+
+    def chooseVelocityNew(self):
         # Find the best direction
 
         # First try to find a valley that contains the
