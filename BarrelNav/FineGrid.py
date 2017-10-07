@@ -113,6 +113,9 @@ class FineGrid(object):
         self.scanAngles = []
         self.scanDists = []
 
+    def setCarAngle(self, val):
+        self.carA = val
+
     def clearScan(self):
         self.scanAngles = []
         self.scanDists = []
