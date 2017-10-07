@@ -317,7 +317,7 @@ class FineGrid(object):
         # Find the valleys
         # This array contains the array of the start of the
         # valley and its width.
-        valleys = []
+        self.valleys = []
         i=0
         while i<self.nAngles:
             if self.hist[i] < self.goodRange:
@@ -332,11 +332,11 @@ class FineGrid(object):
 
             # print "found valley: [",i,", ",n,"]"
             if n>=Lmin:
-                valleys.append([i,n])
+                self.valleys.append([i,n])
 
             i+=n
 
-        if len(valleys) == 0:
+        if len(self.valleys) == 0:
             print "No valleys found."
             print "     goodRange: ", self.goodRange
             print "          Lmin: ", Lmin
@@ -348,6 +348,7 @@ class FineGrid(object):
             if True:
                 return
 
+    def chooseVelocity(self):
         # Find the best direction
 
         # First try to find a valley that contains the
@@ -356,7 +357,7 @@ class FineGrid(object):
 
         found = False
         k = (self.goal_dir/pi+1)/2*self.nAngles
-        for v in valleys:
+        for v in self.valleys:
             if k>=v[0] and k<=v[0]+v[1]-1:
                 found = True
                 TurnAngle = self.index2angle(v[0] + v[1]/2.0)
@@ -368,7 +369,7 @@ class FineGrid(object):
 
         TurnAngle = 0.0
         if not found:
-            for v in valleys:
+            for v in self.valleys:
                 edge = self.index2angle(v[0]) 
                 if not found :
                     TurnAngle = edge

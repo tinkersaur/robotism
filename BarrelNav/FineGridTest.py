@@ -62,6 +62,7 @@ def test_calcForceHist():
     g.enterScan(40,80)
     g.enterScan(45,130)
     g.calcForceHist()
+    g.chooseVelocity()
     print g.getDescription()
     publish(g)
 
@@ -85,6 +86,7 @@ def test_calcForceHistRotated():
     g.enterScan(40,80)
     g.enterScan(45,130)
     g.calcForceHist()
+    g.chooseVelocity()
     print g.getDescription()
     publish(g)
 
@@ -108,6 +110,7 @@ def test_recenter():
     g.enterScan(40,80)
     g.enterScan(45,130)
     g.calcForceHist()
+    g.chooseVelocity()
     g.recenter()
     print g.getDescription()
     publish(g)
