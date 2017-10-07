@@ -6,6 +6,7 @@ Version: 9/2017
 """
 
 from math import *
+from random import *
 
 ###############################################################################
 # Class Grid
@@ -21,9 +22,10 @@ class FineGrid(object):
     corner with 'x' increasing to the right (increasing column index)
     and 'y' increasing going up (increasing row index).
    
-    Angles a stored in degrees, and distances are stored in cm.
-    Angle is assumed to be an absolute angle in world 
-    reference frame, something like we might obtain from a compass. 
+    Angles are stored in degrees, and distances are stored in cm.  An angle
+    is assumed to be an absolute angle in the world reference frame,
+    something like what we might obtain from a compass.  and independent of
+    the car rotation.
     
     Public instance variables:
         nCols      --  Number of columns in the occupancy grid.
@@ -35,9 +37,6 @@ class FineGrid(object):
         (x0,y0,dx,dy) -- the coeficients used to tranfrom the
                          grid point into real world
 
-    Note that scanAngles and histAngles which are stored in the
-    array are absolute and independent of the car rotation.
-    Although when enterScan is used, the angle is relative. 
 
     """
     
@@ -61,6 +60,11 @@ class FineGrid(object):
         self.goal_dir = 0
         self.valleys = []
         self.minValleyAngle = 25
+        self.numRandomSteps = 9
+        self.maxRandomSteps = 10
+        self.lastRandomSpeedSign = 1
+        self.goodRange = 100
+        self.minRange = 25
 
     def setGridSize(self, nCols=50, nRows=50):
         self.nCols      = nCols 
@@ -83,11 +87,18 @@ class FineGrid(object):
     def setMinValleyAngle(self, val):
         self.minValleyAngle = val
 
+    def setMinRange(self, val):
+        """ If a distance to an obstacle is this far
+            than the robot can maneuver in front of it at
+            a mininal speed. This is also the treshold in
+            the histogram for finding valleys.
+        """
+        self.minRange = val
+
     def setGoodRange(self, val):
         """ If a distance to an obstacle is this far
-            than the robot can maneuver in front of it easily.
-            This is also the treshold in the histogram for
-            finding valleys.
+            than the robot can maneuver in front of it easily
+            going at full speed.
         """
         self.goodRange = val
 
@@ -105,7 +116,8 @@ class FineGrid(object):
         self.carA       = 0.0
         self.x0=-self.nCols*self.dx/2
         self.y0=-self.nRows*self.dy/2
-        self.grid = [[ 0.5 for x in range(self.nCols)] for y in range(self.nRows)]    
+        self.grid = [[ 0.5 for x in range(self.nCols)]\
+                for y in range(self.nRows)]    
         self.hist=[0.0 for a in range(self.nAngles) ]
         self.scanAngles = []
         self.scanDists = []
@@ -163,12 +175,7 @@ class FineGrid(object):
             if not onGrid:
                 return
 
-    # TODO:
-    # Think if the input angles should be trully absolute.
-    # Because the car can turn between measurements.
     def enterScan(self, angle, dist):
-
-        angle+=self.carA
 
         self.scanAngles.append(angle)
         self.scanDists.append(dist)
@@ -211,7 +218,8 @@ class FineGrid(object):
     
     def scroll(self, di, dj):
         old = self.grid
-        self.grid = [ [ 0.0 for j in range(0, self.nCols) ] for i in range(0, self.nRows) ]
+        self.grid = [ [ 0.0 for j in range(0, self.nCols) ] \
+            for i in range(0, self.nRows) ]
         for i in range(0, self.nRows):
             for j in range(0, self.nCols):
                 i1 = i+di
@@ -310,13 +318,13 @@ class FineGrid(object):
         self.valleys = []
         i=0
         while i<self.nAngles:
-            if self.hist[i] < self.goodRange:
+            if self.hist[i] < self.minRange:
                 #print "Obstacle is too close: ", self.hist[i]
                 i+=1
                 continue
 
             n=1
-            while self.hist[ (i+n) % self.nAngles ] > self.goodRange \
+            while self.hist[ (i+n) % self.nAngles ] > self.minRange \
                   and n < self.nAngles:
                 n+=1
 
@@ -329,6 +337,7 @@ class FineGrid(object):
         if len(self.valleys) == 0:
             print "No valleys found."
             print "     goodRange: ", self.goodRange
+            print "     minRange: ", self.minRange
             print "          Lmin: ", Lmin
             print "Maximum Forces: ", max(self.hist)
             print "Minimum Forces: ", min(self.hist)
@@ -338,87 +347,85 @@ class FineGrid(object):
             if True:
                 return
 
+    def chooseVelocityOld(self):
+        # Find the best direction
+
+        # First try to find a valley that contains the
+        # goal direction. If there is such a valley,
+        # then go in the middle of it.
+
+        found = False
+        k = (self.goal_dir/pi+1)/2*self.nAngles
+        for v in self.valleys:
+            if k>=v[0] and k<=v[0]+v[1]-1:
+                found = True
+                TurnAngle = self.index2angle(v[0] + v[1]/2.0)
+                break
+
+        # If there is no valley that contains the goal direction,
+        # then try to find a valley that has an edge that would
+        # be the closest match.
+
+        TurnAngle = 0.0
+        if not found:
+            for v in self.valleys:
+                edge = self.index2angle(v[0]) 
+                if not found :
+                    TurnAngle = edge
+                    found = True
+                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
+                    TurnAngle = edge
+                    edge = self.index2angle(v[0]+v[1]) 
+                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
+                     TurnAngle = edge
+
+
+        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/self.goodRange
+        ObstacleSize = min(1.0, ObstacleSize) 
+
+        self.speed = (self.maxSpeed-self.minSpeed)* \
+                (1.0 - ObstacleSize) + self.minSpeed
+
+        self.turnAngle = TurnAngle
+
     def chooseVelocity(self):
+
         # Find the best direction
 
-        # First try to find a valley that contains the
-        # goal direction. If there is such a valley,
-        # then go in the middle of it.
+        Lmin = int(ceil(self.minValleyAngle/2/(360.0/self.nAngles)))
 
         found = False
-        k = (self.goal_dir/pi+1)/2*self.nAngles
+        best_score = 0
         for v in self.valleys:
-            if k>=v[0] and k<=v[0]+v[1]-1:
+            k = v[0]+Lmin
+            while k <= v[0] + v[1] - Lmin:
+                score = cos(self.index2angle(k)-self.goal_dir) * self.hist[k]
+                if not found or score>best_score:
+                    best_score = score
+                    best_dir = k
+                    print "best_dir = ", best_dir
+                    print "best_score = ", best_score
+                
                 found = True
-                TurnAngle = self.index2angle(v[0] + v[1]/2.0)
-                break
+                k+=1
 
-        # If there is no valley that contains the goal direction,
-        # then try to find a valley that has an edge that would
-        # be the closest match.
+        if found:
+            self.turnAngle = self.index2angle(best_dir)
+            ObstacleSize = self.hist[best_dir]/self.goodRange
+            ObstacleSize = min(1.0, ObstacleSize) 
 
-        TurnAngle = 0.0
-        if not found:
-            for v in self.valleys:
-                edge = self.index2angle(v[0]) 
-                if not found :
-                    TurnAngle = edge
-                    found = True
-                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
-                    TurnAngle = edge
-                    edge = self.index2angle(v[0]+v[1]) 
-                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
-                     TurnAngle = edge
+            self.speed = (self.maxSpeed-self.minSpeed)* \
+                    (1.0 - ObstacleSize) + self.minSpeed
 
-
-        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/self.goodRange
-        ObstacleSize = min(1.0, ObstacleSize) 
-
-        self.speed = (self.maxSpeed-self.minSpeed)* \
-                (1.0 - ObstacleSize) + self.minSpeed
-
-        self.turnAngle = TurnAngle
-
-    def chooseVelocityNew(self):
-        # Find the best direction
-
-        # First try to find a valley that contains the
-        # goal direction. If there is such a valley,
-        # then go in the middle of it.
-
-        found = False
-        k = (self.goal_dir/pi+1)/2*self.nAngles
-        for v in self.valleys:
-            if k>=v[0] and k<=v[0]+v[1]-1:
-                found = True
-                TurnAngle = self.index2angle(v[0] + v[1]/2.0)
-                break
-
-        # If there is no valley that contains the goal direction,
-        # then try to find a valley that has an edge that would
-        # be the closest match.
-
-        TurnAngle = 0.0
-        if not found:
-            for v in self.valleys:
-                edge = self.index2angle(v[0]) 
-                if not found :
-                    TurnAngle = edge
-                    found = True
-                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
-                    TurnAngle = edge
-                    edge = self.index2angle(v[0]+v[1]) 
-                elif fabs(TurnAngle-self.goal_dir) < fabs(edge-self.goal_dir):
-                     TurnAngle = edge
-
-
-        ObstacleSize = self.hist[int(round(self.angle2index(0)))]/self.goodRange
-        ObstacleSize = min(1.0, ObstacleSize) 
-
-        self.speed = (self.maxSpeed-self.minSpeed)* \
-                (1.0 - ObstacleSize) + self.minSpeed
-
-        self.turnAngle = TurnAngle
+        else:
+            # Generate a direction randomly:
+            print "no good direction found. Choosing random direction."
+            self.numRandomSteps += 1
+            if (self.numRandomSteps >= self.maxRandomSteps):
+               self.numRandomSteps = 0
+               self.turnAngle = random()*180-90
+               self.speed = - self.minSpeed * self.lastRandomSpeedSign
+               self.lastRandomSpeedSign = - self.lastRandomSpeedSign
 
     ###########################################################################
     def getDescription (self):
