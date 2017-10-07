@@ -171,6 +171,9 @@ class FineGrid(object):
             if not onGrid:
                 return
 
+    # TODO:
+    # Think if the input angles should be trully absolute.
+    # Because the car can turn between measurements.
     def enterScan(self, angle, dist):
 
         angle+=self.carA
@@ -219,8 +222,8 @@ class FineGrid(object):
         self.grid = [ [ 0.0 for j in range(0, self.nCols) ] for i in range(0, self.nRows) ]
         for i in range(0, self.nRows):
             for j in range(0, self.nCols):
-                i1 = i-di
-                j1 = j-dj
+                i1 = i+di
+                j1 = j+dj
                 if 0<=i1 and i1<self.nRows and \
                     0<=j1 and j1<self.nCols:
                     self.grid[i][j] = old[i1][j1]
@@ -231,9 +234,9 @@ class FineGrid(object):
             
 
     def recenter(self):
-        dj = int(round(self.carX / self.dx))
+        dj = int(round( self.carX / self.dx))
         di = int(round( self.carY / self.dy))
-        if fabs(dj)>=2 or fabs(dy)>=2:
+        if fabs(di)>=2 or fabs(dj)>=2:
             self.scroll(di, dj)
     
     ###########################################################################

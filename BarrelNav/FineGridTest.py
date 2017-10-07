@@ -116,6 +116,6 @@ if __name__ == '__main__':
     #test_setGridVal()
     #test_setLineVal()
     #test_enterScan()
-    test_calcForceHistRotated()
+    # test_calcForceHistRotated()
     # test_calcForceHist()
-    #test_recenter()
+    test_recenter()
